@@ -6,6 +6,9 @@ blockchain_project/
 ├── block_chain.py     # Main application file
 ├── wallets.json       # Wallet storage
 ├── contacts.json      # Contact information
+├── blockchain.json    # Blockchain data
+├── pending_transactions.json # Unconfirmed transactions
+├── completed_transactions.json # Processed transactions
 ├── transactions/      # Transaction history
 │   └── transactions_[wallet_address].json
 ├── docs/
@@ -39,10 +42,12 @@ blockchain_project/
   - mining_reward
 
 ### File Management
-- `wallets.json`: Stores wallet information
+- `wallets.json`: Stores wallet information and balances
 - `contacts.json`: Stores contact details
-- `transactions/`: Directory for transaction history
-  - Each wallet has its own transaction file
+- `blockchain.json`: Stores the entire blockchain data
+- `pending_transactions.json`: Temporary storage for unconfirmed transactions
+- `completed_transactions.json`: Archive of all processed transactions
+- `transactions/`: Directory for per-wallet transaction histories
 
 ## 🧪 Testing
 To implement tests:
@@ -103,6 +108,10 @@ Debug points to consider:
 4. Improve mining algorithm
 5. Add block explorer UI
 6. Implement wallet backup/restore
+7. Add multi-signature transactions
+8. Implement smart contracts
+9. Add support for multiple cryptocurrencies
+10. Enhance transaction privacy features
 
 ## 🤝 Contributing Guidelines
 1. Fork the repository
@@ -134,5 +143,15 @@ def validate_chain(self)
 def load_data(file_path)
 def save_data(data, file_path)
 def get_transaction_file(wallet_address)
-def record_transaction(transaction, wallet_address, transaction_type)
+def record_transaction(transaction, wallet_address, tx_type)
+def update_wallet_balance(address, amount_change)
+def name_exists_in_contacts(first_name, last_name)
+def format_address(addr, width=36)
+def format_address_with_name(addr, contacts, wallets, is_sender=False, width=50)
+def format_amount(amount, width=14)
+def format_timestamp(ts, width=21)
+def format_type(tx_type, width=12)
+def format_hash(hash_value, width=66)
+def get_string_width(s)
+def pad_to_width(s, width)
 ```

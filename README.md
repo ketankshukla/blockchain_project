@@ -10,11 +10,26 @@ A Python-based blockchain implementation featuring a user-friendly wallet system
 - ⛏️ **Mining System**: Mine blocks and earn rewards
 - 📊 **Transaction History**: Track all wallet activities
 - 🔍 **Blockchain Explorer**: View and validate the blockchain
+- 📈 **Status Tracking**: Monitor pending and completed transactions
+- 🎯 **Smart Formatting**: Improved transaction display with contact names
+- 💼 **Balance Management**: Automatic balance updates and verification
+- 🔐 **Enhanced Security**: Robust transaction and contact verification
 
 ## 🚀 Quick Start
 1. Clone the repository
-2. Run `python block_chain.py`
-3. Follow the interactive prompts to create your first wallet
+2. Set up Python virtual environment:
+   ```bash
+   python -m venv .venv
+   .\.venv\Scripts\activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Run the application:
+   ```bash
+   python block_chain.py
+   ```
 
 ## 🛠️ Technical Stack
 - Python 3.x
@@ -23,6 +38,8 @@ A Python-based blockchain implementation featuring a user-friendly wallet system
   - `json` for data storage
   - `uuid` for address generation
   - `time` for timestamps
+  - `tabulate` for formatted output
+  - `unicodedata` for string formatting
 
 ## 📖 Documentation
 - [User Guide](docs/USERS.md) - Comprehensive guide for using the application

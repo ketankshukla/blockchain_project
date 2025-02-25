@@ -9,6 +9,9 @@
 - [Transactions](#transactions)
 - [Mining](#mining)
 - [Viewing Information](#viewing-information)
+- [Error Handling](#error-handling)
+- [Security Features](#security-features)
+- [Tips and Tricks](#tips-and-tricks)
 
 ## 🚀 Introduction
 This blockchain application provides a simple yet powerful interface for managing digital wallets, conducting transactions, and mining blocks. The system includes features like contact management, transaction history, and blockchain validation.
@@ -28,6 +31,8 @@ The application offers the following main features:
 5. Transaction history tracking
 6. Blockchain validation
 7. Contact-based transaction viewing
+8. Transaction status tracking
+9. Improved transaction management
 
 ## 👛 Wallet Management
 ### Creating a New Wallet
@@ -63,24 +68,50 @@ The application offers the following main features:
 1. Select "Send Transaction"
 2. Choose a contact from your list
 3. Enter the amount to send
-4. Confirm the transaction
+4. Confirm the transaction details
+5. Transaction will be added to pending transactions
+
+### Transaction Status
+- **Pending Transactions**: Transactions waiting to be mined
+- **Completed Transactions**: Successfully processed transactions
+- **Failed Transactions**: Transactions that couldn't be processed
 
 ### Viewing Transactions
-- **Your Transactions (Option 4)**: View your complete transaction history
-- **Contact Transactions (Option 5)**: View transactions for specific contacts
+- **Your Transactions (Option 4)**
+  - View complete transaction history
+  - Filter by transaction type
+  - See formatted addresses with contact names
+  - View timestamps and amounts
+- **Contact Transactions (Option 5)**
+  - View transactions for specific contacts
+  - See transaction details in a formatted table
+  - Track incoming and outgoing transactions
 
 ## ⛏️ Mining
 ### Mining Blocks (Option 2)
 1. Select "Mine Transactions"
-2. Confirm mining operation if pending transactions exist
-3. Receive mining rewards upon successful block creation
+2. System will:
+   - Collect all pending transactions
+   - Create a new block
+   - Perform proof of work
+   - Add block to chain
+   - Clear pending transactions
+   - Award mining reward
+3. View mining results and rewards
 
 ## 📊 Viewing Information
 ### Blockchain Explorer (Option 3)
 - View total number of blocks
 - Check pending transactions
+- View completed transactions
 - Verify chain validity
-- View detailed block information
+- View detailed block information including:
+  - Block index
+  - Timestamp
+  - Transaction details
+  - Previous block hash
+  - Current block hash
+  - Mining difficulty
 
 ## ⚠️ Error Handling
 The application includes robust error handling for:
@@ -94,3 +125,22 @@ The application includes robust error handling for:
 - Transaction validation
 - Blockchain integrity verification
 - Secure file storage for transactions and contacts
+- Automatic balance updates
+- Transaction history tracking
+- Contact verification system
+
+## 💡 Tips and Tricks
+1. **Contact Management**
+   - Add frequently used addresses as contacts
+   - Use contact names for easier transactions
+   - Keep contact list organized
+
+2. **Transaction History**
+   - Regular review of pending transactions
+   - Track mining rewards
+   - Monitor wallet balances
+
+3. **Mining Strategy**
+   - Mine when there are multiple pending transactions
+   - Keep track of mining rewards
+   - Verify successful transaction processing
