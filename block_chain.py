@@ -8,6 +8,8 @@ from uuid import uuid4
 WALLETS_FILE = "wallets.json"
 CONTACTS_FILE = "contacts.json"
 TRANSACTIONS_DIR = "transactions"
+PENDING_TRANSACTIONS_FILE = "pending_transactions.json"
+COMPLETED_TRANSACTIONS_FILE = "completed_transactions.json"
 
 os.makedirs(TRANSACTIONS_DIR, exist_ok=True)
 
@@ -43,9 +45,34 @@ class Block:
 class Blockchain:
     def __init__(self):
         self.chain = [self.create_genesis_block()]
-        self.pending_transactions = []
         self.difficulty = 4
         self.mining_reward = 10
+        self.load_pending_transactions()
+
+    def load_pending_transactions(self):
+        try:
+            with open(PENDING_TRANSACTIONS_FILE, 'r') as f:
+                self.pending_transactions = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.pending_transactions = []
+            self.save_pending_transactions()
+
+    def save_pending_transactions(self):
+        with open(PENDING_TRANSACTIONS_FILE, 'w') as f:
+            json.dump(self.pending_transactions, f, indent=2)
+
+    def load_completed_transactions(self):
+        try:
+            with open(COMPLETED_TRANSACTIONS_FILE, 'r') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+
+    def save_completed_transactions(self, transactions):
+        completed = self.load_completed_transactions()
+        completed.extend(transactions)
+        with open(COMPLETED_TRANSACTIONS_FILE, 'w') as f:
+            json.dump(completed, f, indent=2)
 
     def create_genesis_block(self):
         return Block(0, time.time(), "Genesis Block", "0")
@@ -55,29 +82,71 @@ class Blockchain:
 
     def create_transaction(self, sender, receiver, amount):
         transaction = {
+            "id": str(uuid4()),
             "sender": sender,
             "receiver": receiver,
             "amount": amount,
             "timestamp": time.time()
         }
         self.pending_transactions.append(transaction)
+        self.save_pending_transactions()
         return transaction
 
     def mine_pending_transactions(self, miner_address):
         if not self.pending_transactions:
             raise ValueError("No transactions to mine")
         
+        # Load current pending transactions from file to ensure we have the latest
+        try:
+            with open(PENDING_TRANSACTIONS_FILE, 'r') as f:
+                self.pending_transactions = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.pending_transactions = []
+        
+        if not self.pending_transactions:
+            raise ValueError("No transactions to mine")
+            
+        # Check if any transactions are already completed
+        completed_transactions = self.load_completed_transactions()
+        completed_tx_ids = {tx.get("id") for tx in completed_transactions}
+        
+        # Filter out any transactions that are already completed
+        valid_transactions = [tx for tx in self.pending_transactions 
+                            if tx.get("id") not in completed_tx_ids]
+        
+        if not valid_transactions:
+            raise ValueError("All pending transactions have already been mined!")
+        
         block = Block(
             index=len(self.chain),
             timestamp=time.time(),
-            transactions=self.pending_transactions,
+            transactions=valid_transactions,
             previous_hash=self.get_last_block().hash
         )
+        
         block.nonce = self.proof_of_work(block)
         block.hash = block.calculate_hash()
         self.chain.append(block)
+        
+        # Save to completed transactions
+        self.save_completed_transactions(valid_transactions)
+        
+        # Clear the pending transactions completely
         self.pending_transactions = []
-        self.create_transaction("network", miner_address, self.mining_reward)
+        with open(PENDING_TRANSACTIONS_FILE, 'w') as f:
+            json.dump([], f, indent=2)
+        
+        # Create mining reward transaction and add it directly to completed transactions
+        reward_tx = {
+            "id": str(uuid4()),
+            "sender": "network",
+            "receiver": miner_address,
+            "amount": self.mining_reward,
+            "timestamp": time.time()
+        }
+        self.save_completed_transactions([reward_tx])
+        
+        return len(valid_transactions)
 
     def proof_of_work(self, block):
         block.nonce = 0
@@ -282,7 +351,7 @@ def main_menu():
                         amount
                     )
                     record_transaction(transaction, current_wallet['address'], "sent")
-                    print("\n Transaction created!")
+                    print("\n Transaction created and added to pending transactions!")
                 else:
                     print("\n Transaction canceled")
 
@@ -300,16 +369,19 @@ def main_menu():
                 confirm = input("\nStart mining? This may take time (y/n): ").lower()
                 if confirm == 'y':
                     try:
-                        blockchain.mine_pending_transactions(current_wallet['address'])
-                        print("\n Block mined successfully!")
+                        mined_count = blockchain.mine_pending_transactions(current_wallet['address'])
+                        print(f"\n Block mined successfully! {mined_count} transactions processed.")
                         print(f" Mining reward: {blockchain.mining_reward} coins added to your wallet")
                         reward_tx = {
+                            "id": str(uuid4()),
                             "sender": "network",
                             "receiver": current_wallet['address'],
                             "amount": blockchain.mining_reward,
                             "timestamp": time.time()
                         }
                         record_transaction(reward_tx, current_wallet['address'], "reward")
+                    except ValueError as e:
+                        print(f"\n Mining failed: {str(e)}")
                     except Exception as e:
                         print(f"\n Mining failed: {str(e)}")
                 else:
