@@ -73,5 +73,37 @@
     "previous_hash": "7fb5302f3bd0bb5c048630b05787c1d8d050592ccf2f86f6061f2e17a344edeb",
     "nonce": 9195,
     "hash": "b1e57f4d9ba632e8fc79e43957b29de467557857c8702d211e81e4e2969e561d"
+  },
+  {
+    "index": 3,
+    "timestamp": 1740508251.0007849,
+    "transactions": [
+      {
+        "id": "690edfd2-f2c2-44db-b1f6-3630f9284036",
+        "sender": "d8fa19b8f33d4202b47c5671ebb6337e",
+        "receiver": "b0c9dd35a290492aa298e09c43e729c8",
+        "amount": 3.0,
+        "timestamp": 1740508219.148354,
+        "type": null
+      },
+      {
+        "id": "bf238c85-c911-4bca-88b5-513162cc6040",
+        "sender": "d8fa19b8f33d4202b47c5671ebb6337e",
+        "receiver": "b1ed6b14f37d44399e770a07a2a1c028",
+        "amount": 2.0,
+        "timestamp": 1740508239.8571894,
+        "type": null
+      },
+      {
+        "sender": "Network Reward",
+        "receiver": "d8fa19b8f33d4202b47c5671ebb6337e",
+        "amount": 10,
+        "timestamp": 1740508251.0007799,
+        "type": "REWARD"
+      }
+    ],
+    "previous_hash": "b1e57f4d9ba632e8fc79e43957b29de467557857c8702d211e81e4e2969e561d",
+    "nonce": 164517,
+    "hash": "00007b4f69e9afdcec73a6f196f96da63897fc1c11e6683f45955e44346f9076"
   }
 ]
