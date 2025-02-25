@@ -141,6 +141,17 @@ update_wallet_balance()     # Updates a wallet's balance
 record_transaction()        # Records a transaction in a wallet's history
 ```
 
+### BlockchainApp Class
+
+The `BlockchainApp` class (in `main.py`) serves as the application's entry point and orchestrates all interactions:
+
+- **__init__()**: Initializes data handler and UI components
+- **run()**: Main application loop
+  - Displays initial menu with immediate exit option
+  - Handles wallet selection
+  - Presents the main menu
+  - Routes user choices to appropriate UI components
+
 </div>
 
 ## 🧪 Testing
@@ -168,16 +179,27 @@ A future enhancement would be to add unit tests for each component.
 
 </div>
 
-## 🔄 Workflow
+## 💻 Workflow
 
-<div style="background-color: #fff2e8; padding: 15px; border-radius: 8px; border-left: 5px solid #fa541c;">
+<div style="background-color: #f9f0ff; padding: 15px; border-radius: 8px; border-left: 5px solid #722ed1;">
 
-### Adding a New Feature
+### Application Flow
+
+1. **Initialization**: The application starts in `main.py`, creating the `BlockchainApp` instance
+2. **Initial Menu**: User is presented with options to continue or exit immediately
+3. **Wallet Selection**: If continuing, user must select or create a wallet
+4. **Main Menu**: The main menu provides access to all application features
+5. **Feature Interaction**: Each feature is handled by its respective UI class
+
+### Adding New Features
+
+To add a new feature:
 
 1. Identify which module should contain the feature
-2. Implement the feature in the appropriate class
-3. Update the UI to expose the feature
-4. Update documentation
+2. Implement the business logic in the appropriate class
+3. Create or update a UI component in the `ui` module
+4. Add a new menu option in the `BlockchainApp.run()` method
+5. Update documentation
 
 ### Modifying Existing Features
 

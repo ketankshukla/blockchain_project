@@ -9,29 +9,16 @@ transaction sending, block mining, and more.
 
 import os
 import sys
-import traceback
 
-with open('app_log.txt', 'w') as f:
-    f.write("Starting blockchain application log...\n")
+# Add the current directory to the Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-try:
-    # Add the current directory to the Python path
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    
-    from blockchain.blockchain import Blockchain
-    from data.data_handler import DataHandler
-    from ui.wallet_ui import WalletUI
-    from ui.transaction_ui import TransactionUI
-    from ui.blockchain_ui import BlockchainUI
-    from ui.contacts_ui import ContactsUI
-    
-    with open('app_log.txt', 'a') as f:
-        f.write("Successfully imported all modules\n")
-except Exception as e:
-    with open('app_log.txt', 'a') as f:
-        f.write(f"Error during import: {str(e)}\n")
-        f.write(traceback.format_exc())
-    raise
+from blockchain.blockchain import Blockchain
+from data.data_handler import DataHandler
+from ui.wallet_ui import WalletUI
+from ui.transaction_ui import TransactionUI
+from ui.blockchain_ui import BlockchainUI
+from ui.contacts_ui import ContactsUI
 
 print("Starting blockchain application...")
 
@@ -65,6 +52,19 @@ class BlockchainApp:
         Run the main application loop, displaying the menu and processing user input.
         """
         while True:
+            # Initial option to exit program
+            print("\n=== Blockchain Application ===")
+            print("1. Continue to application")
+            print("2. Exit")
+            initial_choice = input("\nEnter choice (1-2): ").strip()
+            
+            if initial_choice == '2':
+                print("\nExiting application. Goodbye!")
+                sys.exit(0)
+            elif initial_choice != '1':
+                print("\nInvalid choice. Please enter 1 to continue or 2 to exit.")
+                continue
+                
             # Wallet selection/creation
             if not self.current_wallet:
                 wallet = self.wallet_ui.select_wallet()
@@ -152,9 +152,6 @@ class BlockchainApp:
                     print("\n Invalid choice")
 
             except Exception as e:
-                with open('app_log.txt', 'a') as f:
-                    f.write(f"Error during execution: {str(e)}\n")
-                    f.write(traceback.format_exc())
                 print(f"\n Error: {str(e)}")
                 
             # Wait for user to press Enter before continuing
@@ -162,13 +159,5 @@ class BlockchainApp:
 
 
 if __name__ == "__main__":
-    try:
-        with open('app_log.txt', 'a') as f:
-            f.write("Creating and running BlockchainApp\n")
-        app = BlockchainApp()
-        app.run()
-    except Exception as e:
-        with open('app_log.txt', 'a') as f:
-            f.write(f"Fatal error: {str(e)}\n")
-            f.write(traceback.format_exc())
-        print(f"Fatal error: {str(e)}")
+    app = BlockchainApp()
+    app.run()

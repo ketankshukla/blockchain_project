@@ -34,7 +34,13 @@ The application uses blockchain technology to ensure secure and transparent tran
    ```bash
    python main.py
    ```
-4. You'll be presented with the main menu
+4. You'll be presented with an initial menu:
+   ```
+   === Blockchain Application ===
+   1. Continue to application
+   2. Exit
+   ```
+5. Choose option 1 to continue or option 2 to exit immediately
 
 ### Creating Your First Wallet
 
@@ -48,6 +54,20 @@ The application uses blockchain technology to ensure secure and transparent tran
 ## 📡 Main Features
 
 <div style="background-color: #f9f0ff; padding: 15px; border-radius: 8px; border-left: 5px solid #722ed1;">
+
+### 🧭 Application Navigation
+
+The application has an intuitive navigation flow:
+
+1. **Initial Menu**: When you first start the application, you can choose to continue or exit immediately
+2. **Wallet Selection**: Select an existing wallet or create a new one
+3. **Main Menu**: Access all the application features
+4. **Feature Screens**: Perform specific operations
+
+You can exit the application at any time by:
+- Selecting option 2 from the initial menu
+- Selecting option 8 from the main menu
+- Using Ctrl+C at any prompt
 
 ### 💸 Sending Transactions
 

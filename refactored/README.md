@@ -16,6 +16,7 @@ Welcome to our **Simple Blockchain Application**, a lightweight implementation o
 - 📊 **View blockchain** details and transaction history
 - 👥 **Manage contacts** for easy transactions
 - 💾 **Persistent storage** of blockchain data, transactions, and wallet information
+- 🚪 **Quick exit option** immediately available at startup
 
 </div>
 
@@ -33,7 +34,11 @@ Welcome to our **Simple Blockchain Application**, a lightweight implementation o
    python main.py
    ```
 
-3. Follow the on-screen prompts to:
+3. At the initial menu:
+   - Select option 1 to continue to the application
+   - Select option 2 to exit
+
+4. If continuing, follow the on-screen prompts to:
    - Create or select a wallet
    - Send transactions
    - Mine blocks
