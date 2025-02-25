@@ -49,12 +49,11 @@ Welcome to our **Simple Blockchain Application**, a lightweight implementation o
 
 ## 📖 Documentation
 
-<div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; border-left: 5px solid #708090;">
+<div style="background-color: #f8f8f8; padding: 15px; border-radius: 8px; border-left: 5px solid #800080;">
 
-Detailed documentation is available in the `docs` folder:
-
-- [User Guide](docs/USERS.md) - Instructions for using the application
-- [Developer Guide](docs/DEVELOPERS.md) - Technical documentation for developers
+- [User Guide](docs/USERS.md) - How to use the application
+- [Developer Guide](docs/DEVELOPERS.md) - How to extend the application
+- [Function Flows](docs/FUNCTION_FLOWS.md) - Detailed function call sequences and flow diagrams
 
 </div>
 
