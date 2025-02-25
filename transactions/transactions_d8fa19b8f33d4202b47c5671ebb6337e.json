@@ -1,0 +1,20 @@
+[
+  {
+    "id": "7cf74263-ac4a-4279-8a32-8419b2ecbc93",
+    "sender": "d8fa19b8f33d4202b47c5671ebb6337e",
+    "receiver": "5a1bc85f0bca444fb434edd2c9abac63",
+    "amount": 20.0,
+    "timestamp": 1740451918.960953,
+    "type": "sent",
+    "block_time": 1740451918.9830368
+  },
+  {
+    "id": "edbbd0bd-1e66-4aa9-9ac9-f0129757e13a",
+    "sender": "network",
+    "receiver": "d8fa19b8f33d4202b47c5671ebb6337e",
+    "amount": 10,
+    "timestamp": 1740451945.0982215,
+    "type": "reward",
+    "block_time": 1740451945.0985487
+  }
+]

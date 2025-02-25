@@ -3,6 +3,9 @@ import json
 import os
 import time
 from uuid import uuid4
+from tabulate import tabulate
+from datetime import datetime
+import unicodedata
 
 # File paths
 WALLETS_FILE = "wallets.json"
@@ -19,6 +22,27 @@ def get_valid_input(prompt, validation_func, error_message):
         if validation_func(value):
             return value
         print(error_message)
+
+def get_string_width(s):
+    """Get the display width of a string, counting emoji as 2 characters"""
+    width = 0
+    for c in s:
+        # East Asian Width property
+        if unicodedata.east_asian_width(c) in ('F', 'W'):
+            width += 2
+        else:
+            width += 1
+    return width
+
+def pad_to_width(s, width):
+    """Pad a string to exact width, considering emoji width"""
+    current_width = get_string_width(s)
+    if current_width < width:
+        padding = width - current_width
+        left_pad = padding // 2
+        right_pad = padding - left_pad
+        return ' ' * left_pad + s + ' ' * right_pad
+    return s
 
 class Block:
     def __init__(self, index, timestamp, transactions, previous_hash, nonce=0):
@@ -93,60 +117,46 @@ class Blockchain:
         return transaction
 
     def mine_pending_transactions(self, miner_address):
-        if not self.pending_transactions:
-            raise ValueError("No transactions to mine")
-        
-        # Load current pending transactions from file to ensure we have the latest
-        try:
-            with open(PENDING_TRANSACTIONS_FILE, 'r') as f:
-                self.pending_transactions = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            self.pending_transactions = []
-        
-        if not self.pending_transactions:
-            raise ValueError("No transactions to mine")
-            
-        # Check if any transactions are already completed
-        completed_transactions = self.load_completed_transactions()
-        completed_tx_ids = {tx.get("id") for tx in completed_transactions}
-        
-        # Filter out any transactions that are already completed
-        valid_transactions = [tx for tx in self.pending_transactions 
-                            if tx.get("id") not in completed_tx_ids]
-        
-        if not valid_transactions:
-            raise ValueError("All pending transactions have already been mined!")
-        
-        block = Block(
-            index=len(self.chain),
-            timestamp=time.time(),
-            transactions=valid_transactions,
-            previous_hash=self.get_last_block().hash
-        )
-        
-        block.nonce = self.proof_of_work(block)
-        block.hash = block.calculate_hash()
-        self.chain.append(block)
-        
-        # Save to completed transactions
-        self.save_completed_transactions(valid_transactions)
-        
-        # Clear the pending transactions completely
-        self.pending_transactions = []
-        with open(PENDING_TRANSACTIONS_FILE, 'w') as f:
-            json.dump([], f, indent=2)
-        
-        # Create mining reward transaction and add it directly to completed transactions
-        reward_tx = {
-            "id": str(uuid4()),
-            "sender": "network",
-            "receiver": miner_address,
-            "amount": self.mining_reward,
-            "timestamp": time.time()
+        """Mine pending transactions and create a new block"""
+        # Load pending transactions
+        pending_transactions = load_data(PENDING_TRANSACTIONS_FILE)
+        if not pending_transactions:
+            return False
+
+        # Create mining reward transaction
+        reward_transaction = {
+            'sender': "0",  # 0 indicates system reward
+            'receiver': miner_address,
+            'amount': self.mining_reward,
+            'timestamp': time.time(),
+            'type': 'REWARD'
         }
-        self.save_completed_transactions([reward_tx])
-        
-        return len(valid_transactions)
+
+        # Create new block with pending transactions and reward
+        new_block = Block(
+            len(self.chain),
+            time.time(),
+            pending_transactions + [reward_transaction],
+            self.chain[-1].hash if self.chain else "0"
+        )
+
+        # Mine the block
+        new_block.nonce = self.proof_of_work(new_block)
+        new_block.hash = new_block.calculate_hash()
+        self.chain.append(new_block)
+
+        # Update completed transactions
+        completed_transactions = load_data(COMPLETED_TRANSACTIONS_FILE)
+        completed_transactions.extend(pending_transactions + [reward_transaction])
+        save_data(completed_transactions, COMPLETED_TRANSACTIONS_FILE)
+
+        # Clear pending transactions
+        save_data([], PENDING_TRANSACTIONS_FILE)
+
+        # Update miner's wallet with reward
+        update_wallet_balance(miner_address, self.mining_reward)
+
+        return True
 
     def proof_of_work(self, block):
         block.nonce = 0
@@ -192,15 +202,60 @@ def record_transaction(transaction, wallet_address, transaction_type):
     })
     save_data(transactions, tx_file)
 
-def create_wallet(nickname):
+def update_wallet_balance(address, amount_change):
+    """Update a wallet's balance. Positive amount_change for receiving, negative for sending."""
+    wallets = load_data(WALLETS_FILE)
+    for wallet in wallets:
+        if wallet['address'] == address:
+            wallet['balance'] += amount_change
+            save_data(wallets, WALLETS_FILE)
+            return True
+    return False
+
+def create_wallet():
+    """Create a new wallet and corresponding contact"""
+    first_name = get_valid_input(
+        "First Name: ",
+        lambda x: len(x) > 0,
+        "First name cannot be empty"
+    )
+    last_name = get_valid_input(
+        "Last Name: ",
+        lambda x: len(x) > 0,
+        "Last name cannot be empty"
+    )
+    
+    full_name = f"{first_name} {last_name}"
+    address = str(uuid4()).replace('-', '')
+    
+    # Create wallet
     wallet = {
-        "address": str(uuid4()).replace('-', ''),
-        "nickname": nickname,
-        "created_at": time.time()
+        "address": address,
+        "nickname": full_name,
+        "balance": 100
     }
+    
+    # Save wallet
     wallets = load_data(WALLETS_FILE)
     wallets.append(wallet)
     save_data(wallets, WALLETS_FILE)
+    
+    # Create corresponding contact
+    contact = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "address": address
+    }
+    
+    # Save contact
+    contacts = load_data(CONTACTS_FILE)
+    contacts.append(contact)
+    save_data(contacts, CONTACTS_FILE)
+    
+    print(f"\nWallet created successfully!")
+    print(f"Address: {address}")
+    print(f"Initial balance: {wallet['balance']}")
+    print(f"Contact added: {full_name}")
     return wallet
 
 def select_wallet():
@@ -224,63 +279,203 @@ def select_wallet():
             print(" Please enter a valid number")
 
 def manage_contacts():
-    contacts = load_data(CONTACTS_FILE)
     while True:
-        print("\nContact Management:")
+        print("\n=== Contacts Management ===")
         print("1. Add Contact")
         print("2. View Contacts")
-        print("3. Delete Contact")
-        print("4. Return to Main Menu")
-        choice = input("Choose option: ")
-
+        print("3. Back to Main Menu")
+        
+        choice = input("\nEnter choice (1-3): ")
+        
+        if choice == '3':
+            return
+        
         if choice == '1':
+            print("\nEnter contact details (or press Enter to cancel):")
+            first_name = input("First Name: ").strip()
+            if not first_name:
+                print("Cancelled - Returning to contacts menu")
+                continue
+                
+            last_name = input("Last Name: ").strip()
+            if not last_name:
+                print("Cancelled - Returning to contacts menu")
+                continue
+            
             contact_address = str(uuid4()).replace('-', '')
             contact = {
-                "first_name": get_valid_input(
-                    "First Name: ",
-                    lambda x: len(x) > 0,
-                    "First name cannot be empty"
-                ),
-                "last_name": get_valid_input(
-                    "Last Name: ",
-                    lambda x: len(x) > 0,
-                    "Last name cannot be empty"
-                ),
+                "first_name": first_name,
+                "last_name": last_name,
                 "address": contact_address
             }
+            
+            contacts = load_data(CONTACTS_FILE)
             contacts.append(contact)
             save_data(contacts, CONTACTS_FILE)
-            print(f"\nContact added with address: {contact_address}")
+            print(f"\nContact added successfully!")
+            print(f"Name: {first_name} {last_name}")
+            print(f"Address: {contact_address}")
 
         elif choice == '2':
+            contacts = load_data(CONTACTS_FILE)
             if not contacts:
-                print("\n No contacts found!")
+                print("\nNo contacts found")
                 continue
             print("\nSaved Contacts:")
             for i, contact in enumerate(contacts, 1):
                 print(f"{i}. {contact['first_name']} {contact['last_name']}")
                 print(f"   Address: {contact['address']}\n")
 
-        elif choice == '3':
-            if not contacts:
-                print("\n No contacts to delete!")
+def send_transaction(blockchain, current_wallet):
+    while True:
+        contacts = load_data(CONTACTS_FILE)
+        if not contacts:
+            print("\nNo contacts found. Please add a contact first.")
+            return
+
+        # Filter out the current user from the contacts list
+        available_contacts = [
+            contact for contact in contacts 
+            if contact['address'] != current_wallet['address']
+        ]
+
+        if not available_contacts:
+            print("\nNo other contacts found to send money to.")
+            return
+
+        print("\n=== Send Transaction ===")
+        print(f"Your current balance: {current_wallet['balance']}")
+        print("\nSelect a contact to send to:")
+        
+        for i, contact in enumerate(available_contacts, 1):
+            print(f"{i}. {contact['first_name']} {contact['last_name']}")
+        print(f"{len(available_contacts) + 1}. Back to Main Menu")
+
+        contact_choice = input("\nEnter choice: ")
+        if contact_choice == str(len(available_contacts) + 1):
+            return
+            
+        try:
+            contact_index = int(contact_choice) - 1
+            if contact_index < 0 or contact_index >= len(available_contacts):
+                print("Invalid contact number")
                 continue
-            try:
-                index = int(input("Enter contact number to delete: ")) - 1
-                if 0 <= index < len(contacts):
-                    del contacts[index]
-                    save_data(contacts, CONTACTS_FILE)
-                    print(" Contact deleted")
-                else:
-                    print(" Invalid index")
-            except ValueError:
-                print(" Please enter a valid number")
+        except ValueError:
+            print("Invalid input")
+            continue
 
-        elif choice == '4':
-            break
+        selected_contact = available_contacts[contact_index]
 
-        else:
-            print(" Invalid choice")
+        amount = input("\nEnter amount (or press Enter to cancel): ").strip()
+        if not amount:
+            print("Cancelled - Returning to send menu")
+            continue
+            
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                print("Amount must be positive")
+                continue
+            if amount > current_wallet['balance']:
+                print(f"\nInsufficient funds! Your balance is {current_wallet['balance']}")
+                continue
+        except ValueError:
+            print("Invalid amount")
+            continue
+
+        confirm = input(f"\nSend {amount} to {selected_contact['first_name']} {selected_contact['last_name']}? (y/n): ").lower()
+        if confirm != 'y':
+            print("Transaction cancelled")
+            continue
+
+        # Create and record the transaction
+        transaction = blockchain.create_transaction(
+            current_wallet['address'],
+            selected_contact['address'],
+            amount
+        )
+        
+        # Update wallet balances
+        update_wallet_balance(current_wallet['address'], -amount)  # Deduct from sender
+        update_wallet_balance(selected_contact['address'], amount)  # Add to receiver
+        
+        # Update the current_wallet object to reflect new balance
+        current_wallet['balance'] -= amount
+        
+        # Record the transaction
+        record_transaction(transaction, current_wallet['address'], "sent")
+        print("\nTransaction created and added to pending transactions!")
+        print(f"Your new balance: {current_wallet['balance']}")
+
+def view_transaction_history():
+    while True:
+        print("\n=== Transaction History ===")
+        print("1. View All Transactions")
+        print("2. View Transactions with Contact")
+        print("3. Back to Main Menu")
+        
+        choice = input("\nEnter choice (1-3): ")
+        
+        if choice == '3':
+            return
+            
+        if choice == '1':
+            transactions = load_data(COMPLETED_TRANSACTIONS_FILE)
+            if not transactions:
+                print("\nNo transactions found")
+                continue
+
+def format_address(addr, width=36):
+    """Format address to fixed width, centered"""
+    return pad_to_width(addr, width)
+
+def format_address_with_name(addr, contacts, wallets, is_sender=False, width=50):
+    """Format address with contact name or wallet nickname if available"""
+    display_name = None
+    
+    if is_sender:
+        # For senders, check wallets first
+        for wallet in wallets:
+            if wallet['address'] == addr:
+                display_name = wallet['nickname']
+                break
+    
+    # If no wallet nickname found (or is receiver), check contacts
+    if not display_name:
+        for contact in contacts:
+            if contact['address'] == addr:
+                display_name = contact['first_name'] + ' ' + contact['last_name']
+                break
+    
+    if display_name:
+        display = f"{addr} ({display_name})"
+    else:
+        display = addr
+    
+    return pad_to_width(display, width)
+
+def format_amount(amount, width=14):
+    """Format amount to fixed width, centered"""
+    return pad_to_width(str(amount), width)
+
+def format_timestamp(ts, width=21):
+    """Format timestamp to fixed width, centered"""
+    time_str = datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    return pad_to_width(time_str, width)
+
+def format_type(tx_type, width=12):
+    """Format transaction type with emoji, centered"""
+    type_emoji = {
+        'SENT': '📤',
+        'RECEIVED': '📥',
+        'REWARD': '🎁'
+    }.get(tx_type, '💱')
+    formatted = f"{type_emoji} {tx_type}"
+    return pad_to_width(formatted, width + 2)  # +2 for emoji width
+
+def format_hash(hash_value, width=66):
+    """Format hash to fixed width"""
+    return hash_value.center(width)
 
 def main_menu():
     blockchain = Blockchain()
@@ -292,13 +487,7 @@ def main_menu():
         current_wallet = wallet
         print(f"\nLogged in as: {wallet['nickname']}")
     else:
-        nickname = get_valid_input(
-            "Enter wallet nickname: ",
-            lambda x: len(x) > 0,
-            "Nickname cannot be empty"
-        )
-        current_wallet = create_wallet(nickname)
-        print(f"\nNew wallet created: {current_wallet['address']}")
+        current_wallet = create_wallet()
 
     while True:
         print("\n=== Blockchain Main Menu ===")
@@ -324,36 +513,7 @@ def main_menu():
                     print("\n No contacts available! Please add contacts first.")
                     continue
 
-                print("\nSelect Contact to Send To:")
-                for i, contact in enumerate(contacts, 1):
-                    print(f"{i}. {contact['first_name']} {contact['last_name']}")
-
-                contact_index = int(get_valid_input(
-                    "\nEnter contact number: ",
-                    lambda x: x.isdigit() and 1 <= int(x) <= len(contacts),
-                    f" Please enter a number between 1-{len(contacts)}"
-                )) - 1
-
-                selected_contact = contacts[contact_index]
-                receiver_address = selected_contact['address']
-
-                amount = float(get_valid_input(
-                    "\nAmount to send: ",
-                    lambda x: x.replace('.', '', 1).isdigit() and float(x) > 0,
-                    " Invalid amount (must be positive number)"
-                ))
-
-                confirm = input(f"\nSend {amount} to {selected_contact['first_name']} {selected_contact['last_name']}? (y/n): ").lower()
-                if confirm == 'y':
-                    transaction = blockchain.create_transaction(
-                        current_wallet['address'],
-                        receiver_address,
-                        amount
-                    )
-                    record_transaction(transaction, current_wallet['address'], "sent")
-                    print("\n Transaction created and added to pending transactions!")
-                else:
-                    print("\n Transaction canceled")
+                send_transaction(blockchain, current_wallet)
 
             elif choice == '2':
                 if not current_wallet:
@@ -393,10 +553,40 @@ def main_menu():
                 print(f" Pending transactions: {len(blockchain.pending_transactions)}")
                 print(f" Chain validity: {'Valid' if blockchain.validate_chain() else 'Invalid'}")
 
-                if input("\nView details? (y/n): ").lower() == 'y':
-                    for block in blockchain.chain:
-                        print("\n" + "-"*50)
-                        print(block)
+                if input("\nView block details? (y/n): ").lower() == 'y':
+                    for i, block in enumerate(blockchain.chain):
+                        print(f"\n📦 Block #{i}")
+                        print("=" * 50)
+                        
+                        # Basic block info
+                        block_info = [
+                            ["Index", str(block.index).center(10)],
+                            ["Timestamp", format_timestamp(block.timestamp)],
+                            ["Previous Hash", format_hash(block.previous_hash)],
+                            ["Hash", format_hash(block.hash)],
+                            ["Nonce", str(block.nonce).center(10)]
+                        ]
+                        print(tabulate(block_info, tablefmt="fancy_grid"))
+                        
+                        # If it's not the genesis block, show transactions
+                        if isinstance(block.transactions, list):
+                            print("\n📝 Transactions in this block:")
+                            tx_data = []
+                            for tx in block.transactions:
+                                tx_data.append([
+                                    format_address(tx['sender']),
+                                    format_address(tx['receiver']),
+                                    format_amount(tx['amount']),
+                                    format_timestamp(tx['timestamp'])
+                                ])
+                            if tx_data:
+                                print(tabulate(tx_data, 
+                                            headers=['From'.center(36), 'To'.center(36), 
+                                                    'Amount'.center(14), 'Time'.center(21)],
+                                            tablefmt="fancy_grid"))
+                            else:
+                                print("No transactions in this block")
+                        print("\n")
 
             elif choice == '4':
                 if not current_wallet:
@@ -405,15 +595,42 @@ def main_menu():
 
                 tx_file = get_transaction_file(current_wallet['address'])
                 transactions = load_data(tx_file)
-                print(f"\nTransaction history for {current_wallet['nickname']}:")
+                print(f"\n💼 Transaction History for {current_wallet['nickname']}")
+                print("=" * 50)
                 
                 if not transactions:
-                    print(" No transactions found")
+                    print("\n No transactions found")
                 else:
+                    # Load contacts and wallets for display
+                    contacts = load_data(CONTACTS_FILE)
+                    wallets = load_data(WALLETS_FILE)
+                    
+                    # Prepare headers with exact widths
+                    headers = [
+                        pad_to_width('Type', 14),      # 12 + 2 for emoji
+                        pad_to_width('Amount', 14),
+                        pad_to_width('From', 50),      # Increased width for names
+                        pad_to_width('To', 50),        # Increased width for names
+                        pad_to_width('Time', 21)
+                    ]
+                    
+                    # Ensure all data rows have exact widths
+                    tx_data = []
                     for tx in transactions:
-                        print(f"\n{time.ctime(tx['timestamp'])} - {tx['type'].upper()}: {tx['amount']} coins")
-                        print(f" From: {tx['sender']}")
-                        print(f" To: {tx['receiver']}")
+                        tx_type = tx['type'].upper()
+                        tx_data.append([
+                            format_type(tx_type),
+                            format_amount(tx['amount']),
+                            format_address_with_name(tx['sender'], contacts, wallets, is_sender=True),
+                            format_address_with_name(tx['receiver'], contacts, wallets, is_sender=False),
+                            format_timestamp(tx['timestamp'])
+                        ])
+                    
+                    print("\n" + tabulate(tx_data,
+                                 headers=headers,
+                                 tablefmt="simple",
+                                 colalign=("center", "center", "center", "center", "center"),
+                                 disable_numparse=True) + "\n")
 
             elif choice == '5':
                 contacts = load_data(CONTACTS_FILE)
